@@ -45,37 +45,38 @@ var requestHandler = function(request, response) {
   //
   // You will need to change this if you are sending something
   // other than plain text, like JSON or HTML.
-  headers['Content-Type'] = 'application/json';
+  headers['Content-Type'] = 'text/plain';
 
   const { method, url } = request;
+  let results = [];
 
   if (request.url === '/classes/messages') {
     if (request.method === 'POST') {
       statusCode = 201;
-
       messages.push(request._postData);
+
+      response.writeHead(statusCode, headers);      
+      response.end();
     } else {
       statusCode = 200;
+      results = messages;
+
+      response.writeHead(statusCode, headers);
+      response.end(JSON.stringify({results}));
+      console.log(response);
     }
   } else {
-    statusCode = 404;
+    response.statusCode = 404;
+    response.end();
   }
 
-  let results = messages;
-
-  console.log();
-  console.log();
   //in case the request is not found:
   // response.statusCode = 404;
 
-  response.on('error', (err) => {
-    console.error(err);
-  });
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
-  response.writeHead(statusCode, headers);
 
-  const responseBody = { headers, method, url, results };
+  // const responseBody = { headers, method, url, results };
 
   // Make sure to always call response.end() - Node may not send
   // anything back to the client until you do. The string you pass to
@@ -84,8 +85,7 @@ var requestHandler = function(request, response) {
   //
   // Calling .end "flushes" the response's internal buffer, forcing
   // node to actually send all the data over to the client.
-  response.write(JSON.stringify(responseBody));
-  response.end();
+
 };
 
 // These headers will allow Cross-Origin Resource Sharing (CORS).
