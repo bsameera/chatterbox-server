@@ -11,7 +11,16 @@ this file and include it in basic-server.js so that it actually works.
 *Hint* Check out the node module documentation at http://nodejs.org/api/modules.html.
 
 **************************************************************/
-var messages = [];
+var messages = [{
+  username: 'Jono',
+  text: 'Do my bidding!',
+  roomname: 'lobby'
+}];
+
+const OPTIONS = {
+  "GET": {},
+  "POST": {}
+};
 
 var defaultCorsHeaders = {
   'access-control-allow-origin': '*',
@@ -45,25 +54,41 @@ var requestHandler = function(request, response) {
   //
   // You will need to change this if you are sending something
   // other than plain text, like JSON or HTML.
-  headers['Content-Type'] = 'text/plain';
+  headers['Content-Type'] = 'application/json';
 
   const { method, url } = request;
-  let results = [];
+  let results;
+
 
   if (request.url === '/classes/messages') {
     if (request.method === 'POST') {
       statusCode = 201;
-      messages.push(request._postData);
+      body = [];
+      request.on('data', function (chunk) {
+        body.push(chunk);
+      });
+      request.on('end', function () {
+        body = JSON.parse(Buffer.concat(body).toString());
+        messages.push(body);
 
-      response.writeHead(statusCode, headers);      
-      response.end();
+        response.writeHead(statusCode, headers);      
+        response.end();
+      });
+
+    } else if (request.method === 'OPTIONS') {
+      statusCode = 200;
+
+      response.writeHead(statusCode, headers);
+      response.end(JSON.stringify(OPTIONS));  
+
     } else {
+      //GET method
       statusCode = 200;
       results = messages;
 
       response.writeHead(statusCode, headers);
       response.end(JSON.stringify({results}));
-      console.log(response);
+
     }
   } else {
     response.statusCode = 404;
