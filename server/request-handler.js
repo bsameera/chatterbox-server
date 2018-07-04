@@ -14,7 +14,8 @@ this file and include it in basic-server.js so that it actually works.
 var messages = [{
   username: 'Jono',
   text: 'Do my bidding!',
-  roomname: 'lobby'
+  roomname: 'lobby',
+  objectId: 1
 }];
 
 const OPTIONS = {
@@ -23,6 +24,7 @@ const OPTIONS = {
 };
 
 var defaultCorsHeaders = {
+  'Allow': 'HEAD,GET,PUT,DELETE,OPTIONS',
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'access-control-allow-headers': 'content-type, accept',
@@ -56,39 +58,47 @@ var requestHandler = function(request, response) {
   // other than plain text, like JSON or HTML.
   headers['Content-Type'] = 'application/json';
 
-  const { method, url } = request;
   let results;
-
 
   if (request.url === '/classes/messages') {
     if (request.method === 'POST') {
       statusCode = 201;
       body = [];
+      request.on('error', (err) => {
+        console.error(err);
+        response.statusCode = 400;
+        response.end();
+      });
       request.on('data', function (chunk) {
         body.push(chunk);
       });
       request.on('end', function () {
         body = JSON.parse(Buffer.concat(body).toString());
+        body.objectId = messages.length + 1;
         messages.push(body);
 
         response.writeHead(statusCode, headers);      
-        response.end();
+        response.end(JSON.stringify({body}));
       });
 
     } else if (request.method === 'OPTIONS') {
       statusCode = 200;
 
-      response.writeHead(statusCode, headers);
+      response.writeHead(statusCode, defaultCorsHeaders);
       response.end(JSON.stringify(OPTIONS));  
 
-    } else {
+    } else if (request.method === 'GET') {
       //GET method
       statusCode = 200;
       results = messages;
-
       response.writeHead(statusCode, headers);
       response.end(JSON.stringify({results}));
 
+    } else {
+      statusCode = 200;
+      results = messages;
+      response.writeHead(statusCode, headers);
+      response.end(JSON.stringify({results}));
     }
   } else {
     response.statusCode = 404;
